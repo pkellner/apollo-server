@@ -275,6 +275,27 @@ Provide this function to transform the structure of GraphQL response objects bef
 <tr>
 <td colspan="2">
 
+**Lifecycle options**
+</td>
+</tr>
+
+<tr>
+<td>
+
+###### `stopOnTerminationSignals`
+
+`Boolean`
+</td>
+<td>
+
+By default (when running in Node and when the `NODE_ENV` environment variable does not equal `test`), ApolloServer listens for the `SIGINT` and `SIGTERM` signals and calls `await this.stop()` on itself when it is received, and then re-sends the signal to itself so that process shutdown can continue. Set this to false to disable this behavior, or to true to enable this behavior even when `NODE_ENV` is `test`. You can manually invoke `stop()` in other contexts if you'd like. Note that `stop()` does not run synchronously so it cannot work usefully in an `process.on('exit')` handler.
+
+</td>
+</tr>
+
+<tr>
+<td colspan="2">
+
 **Debugging options**
 </td>
 </tr>
@@ -658,7 +679,7 @@ These are the supported fields of the `engine` object you provide to the [`Apoll
 | `requestAgent` | `http.Agent` or `https.Agent` or `false` | An HTTP(S) agent to use for metrics reporting. Can be either an [`http.Agent`](https://nodejs.org/docs/latest-v10.x/api/http.html#http_class_http_agent) or an [`https.Agent`](https://nodejs.org/docs/latest-v10.x/api/https.html#https_class_https_agent). It behaves the same as the `agent` parameter to [`http.request`](https://nodejs.org/docs/latest-v8.x/api/http.html#http_http_request_options_callback). |
 | `generateClientInfo` | `Function` | <p>Specify this function to provide Apollo Studio with client details for each processed operation. Apollo Studio uses this information to [segment metrics by client](https://www.apollographql.com/docs/studio/client-awareness/).</p><p>The function is passed a [`GraphQLRequestContext`](https://github.com/apollographql/apollo-server/blob/main/packages/apollo-server-types/src/index.ts#L95-L130) object containing all available information about the request. It should return a [`ClientInfo`](https://github.com/apollographql/apollo-server/blob/main/packages/apollo-engine-reporting/src/agent.ts#L35-L39) object describing the associated GraphQL client.</p><p>By default, Apollo Server attempts to obtain `ClientInfo` fields from the `clientInfo` field of the GraphQL operation's `extensions`.</p><p>For advanced use cases when you already use an opaque string to identify your client (such as an API key, x509 certificate, or team codename), use the `clientReferenceId` field to add a reference to that internal identity. The reference ID is not displayed in Studio, but it is available for cross-correspondence, so names and reference IDs should have a one-to-one relationship.</p><p>**Warning:** If you specify a `clientReferenceId`, Graph Manager will treat the `clientName` as a secondary lookup, so changing a `clientName` may result in an unwanted experience.</p>|
 | `calculateSignature` | `Function` | <p>A custom function to use to calculate the "signature" of the schema that operations are running against. This enables Apollo Studio to detect when two non-identical schema strings represent the exact same underlying model.</p><p>For an example, see the [default signature function](https://github.com/apollographql/apollo-tooling/blob/master/packages/apollo-graphql/src/operationId.ts), which sorts types and fields, removes extraneous whitespace, and removes unused definitions.</p>  |
-| `handleSignals` | `Boolean` | <p>Set to `false` to disable the Apollo Server trace reporting agent's default signal handling behavior.</p><p>By default, the agent listens for `SIGINT` and `SIGTERM`. Upon receiving either signal, the agent stops, sends a final report, and sends the signal back to itself.</p><p>In addition to disabling the default behavior, you can manually invoke [`stop` and `sendReport`](https://github.com/apollographql/apollo-server/blob/main/packages/apollo-engine-reporting/src/agent.ts) on other signals. Note that `sendReport` is asynchronous, so it should not be called in an `exit` handler.</p> |
+| `handleSignals` | `Boolean` | <p>For backwards compatibility only; specifying `new ApolloServer({engine: {handleSignals: false}})` is equivalent to specifying `new ApolloServer({stopOnTerminationSignals: false})`</p>|
 
 ##### Valid `sendHeaders` object signatures
 
