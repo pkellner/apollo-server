@@ -118,6 +118,7 @@ describe('reporting', () => {
       executor,
       engine: {
         apiKey: 'service:foo:bar',
+        graphVariant: 'current',
         sendReportsImmediately: true,
       },
     });

@@ -110,7 +110,7 @@ export async function getServiceDefinitionsFromStorage({
 }: {
   graphId: string;
   apiKeyHash: string;
-  graphVariant?: string;
+  graphVariant: string;
   federationVersion: number;
   fetcher: typeof fetch;
 }): ReturnType<Experimental_UpdateServiceDefinitions> {
@@ -120,10 +120,6 @@ export async function getServiceDefinitionsFromStorage({
   // The storage secret is a JSON string (e.g. `"secret"`).
   const secret: string =
     await fetchApolloGcs(fetcher, storageSecretUrl).then(res => res.json());
-
-  if (!graphVariant) {
-    graphVariant = 'current';
-  }
 
   const baseUrl = `${urlPartialSchemaBase}/${secret}/${graphVariant}/v${federationVersion}`;
 
