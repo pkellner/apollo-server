@@ -32,7 +32,6 @@
     "apollo-cache-control": "file:packages/apollo-cache-control",
     "apollo-datasource": "file:packages/apollo-datasource",
     "apollo-datasource-rest": "file:packages/apollo-datasource-rest",
-    "apollo-engine-reporting": "file:packages/apollo-engine-reporting",
     "apollo-federation-integration-testsuite": "file:packages/apollo-federation-integration-testsuite",
     "apollo-reporting-protobuf": "file:packages/apollo-reporting-protobuf",
     "apollo-server": "file:packages/apollo-server",
