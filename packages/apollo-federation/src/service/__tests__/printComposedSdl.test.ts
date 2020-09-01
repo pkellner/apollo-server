@@ -1,16 +1,25 @@
 import { fixtures } from 'apollo-federation-integration-testsuite';
 import { composeAndValidate } from '../../composition';
-import { printComposedSdl } from '../printComposedSdl';
+import { parse, print, GraphQLError, visit, StringValueNode } from 'graphql';
 
 describe('printComposedSdl', () => {
-  const { schema, errors } = composeAndValidate(fixtures);
+  let composedSdl: string, errors: GraphQLError[];
+
+  beforeAll(() => {
+    // composeAndValidate calls `printComposedSdl` to return `composedSdl`
+    ({ composedSdl, errors } = composeAndValidate(fixtures));
+  });
 
   it('composes without errors', () => {
     expect(errors).toHaveLength(0);
   });
 
+  it('produces a parseable output', () => {
+    expect(() => parse(composedSdl)).not.toThrow();
+  })
+
   it('prints a fully composed schema correctly', () => {
-    expect(printComposedSdl(schema, fixtures)).toMatchInlineSnapshot(`
+    expect(composedSdl).toMatchInlineSnapshot(`
       "schema
         @graph(name: \\"accounts\\", url: \\"https://accounts.api.com\\")
         @graph(name: \\"books\\", url: \\"https://books.api.com\\")
@@ -52,10 +61,10 @@ describe('printComposedSdl', () => {
 
       type Book implements Product
         @owner(graph: \\"books\\")
-        @key(fields: \\"isbn\\", graph: \\"books\\")
-        @key(fields: \\"isbn\\", graph: \\"inventory\\")
-        @key(fields: \\"isbn\\", graph: \\"product\\")
-        @key(fields: \\"isbn\\", graph: \\"reviews\\")
+        @key(fields: \\"{ isbn }\\", graph: \\"books\\")
+        @key(fields: \\"{ isbn }\\", graph: \\"inventory\\")
+        @key(fields: \\"{ isbn }\\", graph: \\"product\\")
+        @key(fields: \\"{ isbn }\\", graph: \\"reviews\\")
       {
         isbn: String!
         title: String
@@ -66,24 +75,24 @@ describe('printComposedSdl', () => {
         isCheckedOut: Boolean @resolve(graph: \\"inventory\\")
         upc: String! @resolve(graph: \\"product\\")
         sku: String! @resolve(graph: \\"product\\")
-        name(delimeter: String = \\" \\"): String @resolve(graph: \\"product\\") @requires(fields: \\"title year\\")
+        name(delimeter: String = \\" \\"): String @resolve(graph: \\"product\\") @requires(fields: \\"{ title year }\\")
         price: String @resolve(graph: \\"product\\")
         details: ProductDetailsBook @resolve(graph: \\"product\\")
         reviews: [Review] @resolve(graph: \\"reviews\\")
-        relatedReviews: [Review!]! @resolve(graph: \\"reviews\\") @requires(fields: \\"similarBooks { isbn }\\")
+        relatedReviews: [Review!]! @resolve(graph: \\"reviews\\") @requires(fields: \\"{ similarBooks { isbn } }\\")
       }
 
       union Brand = Ikea | Amazon
 
       type Car implements Vehicle
         @owner(graph: \\"product\\")
-        @key(fields: \\"id\\", graph: \\"product\\")
-        @key(fields: \\"id\\", graph: \\"reviews\\")
+        @key(fields: \\"{ id }\\", graph: \\"product\\")
+        @key(fields: \\"{ id }\\", graph: \\"reviews\\")
       {
         id: String!
         description: String
         price: String
-        retailPrice: String @resolve(graph: \\"reviews\\") @requires(fields: \\"price\\")
+        retailPrice: String @resolve(graph: \\"reviews\\") @requires(fields: \\"{ price }\\")
       }
 
       type Error {
@@ -93,10 +102,10 @@ describe('printComposedSdl', () => {
 
       type Furniture implements Product
         @owner(graph: \\"product\\")
-        @key(fields: \\"upc\\", graph: \\"product\\")
-        @key(fields: \\"sku\\", graph: \\"product\\")
-        @key(fields: \\"sku\\", graph: \\"inventory\\")
-        @key(fields: \\"upc\\", graph: \\"reviews\\")
+        @key(fields: \\"{ upc }\\", graph: \\"product\\")
+        @key(fields: \\"{ sku }\\", graph: \\"product\\")
+        @key(fields: \\"{ sku }\\", graph: \\"inventory\\")
+        @key(fields: \\"{ upc }\\", graph: \\"reviews\\")
       {
         upc: String!
         sku: String!
@@ -130,12 +139,12 @@ describe('printComposedSdl', () => {
 
       type Library
         @owner(graph: \\"books\\")
-        @key(fields: \\"id\\", graph: \\"books\\")
-        @key(fields: \\"id\\", graph: \\"accounts\\")
+        @key(fields: \\"{ id }\\", graph: \\"books\\")
+        @key(fields: \\"{ id }\\", graph: \\"accounts\\")
       {
         id: ID!
         name: String
-        userAccount(id: ID! = 1): User @resolve(graph: \\"accounts\\") @requires(fields: \\"name\\")
+        userAccount(id: ID! = 1): User @resolve(graph: \\"accounts\\") @requires(fields: \\"{ name }\\")
       }
 
       union MetadataOrError = KeyValue | Error
@@ -147,9 +156,14 @@ describe('printComposedSdl', () => {
         deleteReview(id: ID!): Boolean @resolve(graph: \\"reviews\\")
       }
 
+      type Name {
+        first: String
+        last: String
+      }
+
       type PasswordAccount
         @owner(graph: \\"accounts\\")
-        @key(fields: \\"email\\", graph: \\"accounts\\")
+        @key(fields: \\"{ email }\\", graph: \\"accounts\\")
       {
         email: String!
       }
@@ -194,18 +208,18 @@ describe('printComposedSdl', () => {
 
       type Review
         @owner(graph: \\"reviews\\")
-        @key(fields: \\"id\\", graph: \\"reviews\\")
+        @key(fields: \\"{ id }\\", graph: \\"reviews\\")
       {
         id: ID!
         body(format: Boolean = false): String
-        author: User @provides(fields: \\"username\\")
+        author: User @provides(fields: \\"{ username }\\")
         product: Product
         metadata: [MetadataOrError]
       }
 
       type SMSAccount
         @owner(graph: \\"accounts\\")
-        @key(fields: \\"number\\", graph: \\"accounts\\")
+        @key(fields: \\"{ number }\\", graph: \\"accounts\\")
       {
         number: String
       }
@@ -229,23 +243,24 @@ describe('printComposedSdl', () => {
 
       type User
         @owner(graph: \\"accounts\\")
-        @key(fields: \\"id\\", graph: \\"accounts\\")
-        @key(fields: \\"id\\", graph: \\"inventory\\")
-        @key(fields: \\"id\\", graph: \\"product\\")
-        @key(fields: \\"id\\", graph: \\"reviews\\")
+        @key(fields: \\"{ id }\\", graph: \\"accounts\\")
+        @key(fields: \\"{ username name { first last } }\\", graph: \\"accounts\\")
+        @key(fields: \\"{ id }\\", graph: \\"inventory\\")
+        @key(fields: \\"{ id }\\", graph: \\"product\\")
+        @key(fields: \\"{ id }\\", graph: \\"reviews\\")
       {
         id: ID!
-        name: String
+        name: Name
         username: String
         birthDate(locale: String): String
         account: AccountType
         metadata: [UserMetadata]
-        goodDescription: Boolean @resolve(graph: \\"inventory\\") @requires(fields: \\"metadata { description }\\")
+        goodDescription: Boolean @resolve(graph: \\"inventory\\") @requires(fields: \\"{ metadata { description } }\\")
         vehicle: Vehicle @resolve(graph: \\"product\\")
         thing: Thing @resolve(graph: \\"product\\")
         reviews: [Review] @resolve(graph: \\"reviews\\")
         numberOfReviews: Int! @resolve(graph: \\"reviews\\")
-        goodAddress: Boolean @resolve(graph: \\"reviews\\") @requires(fields: \\"metadata { address }\\")
+        goodAddress: Boolean @resolve(graph: \\"reviews\\") @requires(fields: \\"{ metadata { address } }\\")
       }
 
       type UserMetadata {
@@ -256,13 +271,13 @@ describe('printComposedSdl', () => {
 
       type Van implements Vehicle
         @owner(graph: \\"product\\")
-        @key(fields: \\"id\\", graph: \\"product\\")
-        @key(fields: \\"id\\", graph: \\"reviews\\")
+        @key(fields: \\"{ id }\\", graph: \\"product\\")
+        @key(fields: \\"{ id }\\", graph: \\"reviews\\")
       {
         id: String!
         description: String
         price: String
-        retailPrice: String @resolve(graph: \\"reviews\\") @requires(fields: \\"price\\")
+        retailPrice: String @resolve(graph: \\"reviews\\") @requires(fields: \\"{ price }\\")
       }
 
       interface Vehicle {
@@ -273,5 +288,24 @@ describe('printComposedSdl', () => {
       }
       "
     `);
+  });
+
+  it('fieldsets are parseable', () => {
+    const parsedCsdl = parse(composedSdl);
+    const fieldSets: string[] = [];
+
+    // Collect all args with the 'fields' name (from @key, @provides, @requires directives)
+    visit(parsedCsdl, {
+      Argument(node) {
+        if (node.name.value === 'fields') {
+          fieldSets.push((node.value as StringValueNode).value);
+        }
+      },
+    });
+
+    // Ensure each found 'fields' arg is graphql parseable
+    fieldSets.forEach((unparsed) => {
+      expect(() => parse(unparsed)).not.toThrow();
+    });
   });
 });
