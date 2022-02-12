@@ -159,7 +159,7 @@ import { ApolloServerPluginDrainHttpServer } from 'apollo-server-core';
 import express from 'express';
 import http from 'http';
 
-async function startApolloServer(typeDefs, resolvers) {
+async function startApolloServer(typeDefs : any, resolvers : any) {
   // Required logic for integrating with Express
   const app = express();
   const httpServer = http.createServer(app);
@@ -186,6 +186,9 @@ async function startApolloServer(typeDefs, resolvers) {
   await new Promise<void>(resolve => httpServer.listen({ port: 4000 }, resolve));
   console.log(`🚀 Server ready at http://localhost:4000${server.graphqlPath}`);
 }
+  
+// ... define your typeDefs and your resolvers
+startApolloServer(typedefs, Resolvers);
 ```
 
 </MultiCodeBlock>
